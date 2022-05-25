@@ -12,9 +12,10 @@
 #include "mr32.h"
 #include "math.h"
 
+
 int bin_mean(unsigned int *array, int length){
    int i, j, bits_all;
-   int bits[10];
+   int bits[3];
    int bit[5];
    int sumbits = 0;
    double avg;
@@ -37,22 +38,25 @@ int bin_mean(unsigned int *array, int length){
    return bits_all;
 }
 
+
+
 int main(void)
 {
    int groundSensor;
-   int vel_max, vel_curva_st, vel_curva_hd, vel_rotl, vel_roth;
-   int data[10];
+   int vel_max, vel_max_2, vel_curva_1, vel_curva_2, vel_curva_3, vel_rotation;
+   int data[3];
    int i = 0;
 
-   vel_max = 50;
-   vel_curva_st = 40;
-   vel_curva_hd = 40;
-   vel_rotl = 25;
-   vel_roth = 50;
+   vel_max = 60;
+   vel_max_2 = 45;
+   vel_curva_1 = 30;
+   vel_curva_2 = 20;
+   vel_curva_3 = 10;
+   vel_rotation = 60;
 
 
    initPIC32();
-   closedLoopControl( false );
+   closedLoopControl( true );
    setVel2(0, 0);
 
    printf("PathFinder example\n\n\n");
@@ -70,43 +74,99 @@ int main(void)
 
       do
       {
-
-         for(i = 0; i < 10; i++){
+            
+        for(i = 0; i < 3; i++){
             data[i] = readLineSensors(0);
          }
-
-         groundSensor = bin_mean(data, 10);
+         
+         groundSensor = bin_mean(data, 3);
          printInt(groundSensor, 2 | 5 << 16);
          printf("\n");
 
+         //groundSensor = readLineSensors(0);
          switch(groundSensor)
          {
+            // Robot was to go straight ahead
             case 0x04:  // 00100:
                setVel2(vel_max, vel_max);
                break;
+            case 0x0E:  // 01110:
+               // The velocity needs to be smaller than the max vel
+               setVel2(vel_max_2,vel_max_2);
+               break;
+
+            // Robot is going to the right
             case 0x0C:  // 01100:
-               setVel2(vel_curva_st, vel_max);
+               setVel2(vel_curva_1, vel_max);
                break;
             case 0x08:  // 01000:
-               setVel2(vel_curva_hd, vel_max);
+               setVel2(vel_curva_2, vel_max);
+               break;         
+            case 0x18:  // 11000:
+               setVel2(vel_curva_3, vel_max);
                break;
-            case 0x10:  // 10000:
-               setVel2(-vel_rotl, vel_roth);
-               break;
+
+            // Robot is going to the left               
             case 0x06:  // 00110:
-               setVel2(vel_max, vel_curva_st);
+               setVel2(vel_max, vel_curva_1);
                break;
             case 0x02:  // 00010:
-               setVel2(vel_max, vel_curva_hd);
+               setVel2(vel_max, vel_curva_2);
                break;
-            case (0x01):  // 00001:
-               setVel2(vel_roth, -vel_rotl);
+            case 0x03:  // 00011:
+               setVel2(vel_max, vel_curva_3);
                break;
+
+            /**
+             * @brief Condition to see if exists street on the left 
+             * 
+             */
+            case 0x16:  //11100:
+               setVel2(-vel_curva_3, vel_max);
+               printStr("Possible left street\n");
+               break;
+
+            // case 0x1E:  //11110:
+            //    setVel2(-vel_max_2, vel_max);
+            //    printStr("Possible left street 2\n");
+            //    break;
+            
+            case 0x10:  // 10000:
+               setVel2(-vel_curva_3, vel_max);
+               break;
+            
+
+            /**
+             * @brief Condition to see if exists street on the right
+             * 
+             */
+            case 0x07:  // 00111:
+               setVel2(vel_max, -vel_curva_3);
+               break;
+
+            // case 0x0F:  //01111:
+            //    setVel2(-vel_max_2, vel_max);
+            //    printStr("Possible left street 2\n");
+            //    break;
+
+            case 0x01:  // 00001:
+               setVel2(vel_max, -vel_curva_3);
+               break;
+
+
+            /**
+             * @brief End of street (turn 180º)
+             * 
+             */
             case 0x00:  // 00000
-               setVel2(-70, 70);
+               setVel2(vel_rotation, -vel_rotation);
                break;
+
+            case 0x1F:  // 11111
+               setVel2(vel_curva_2, -vel_curva_2);
+               break;   
+
             default:
-               setVel2(vel_max, vel_max);
                break;
          }
       } while(!stopButton());
