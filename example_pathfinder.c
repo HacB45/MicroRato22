@@ -6,9 +6,21 @@
 // ****************************************************************************
 // EXAMPLE_PATHFINDER.C
 //
-// To compile this example: pcompile example_pathfinder.c mr32.c
+// To compile this example: pcompile example_pathfinder.c mr32.c && ldpic32 -w example_pathfinder.hex -p /dev/ttyS3
 // ****************************************************************************
 //
+
+/**
+ * @file example_pathfinder.c
+ * @author your name (you@domain.com)
+ * @brief 
+ * @version 0.1
+ * @date 2022-05-26
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #include "mr32.h"
 #include "math.h"
 
@@ -42,13 +54,14 @@ int bin_mean(unsigned int *array, int length){
 
 int main(void)
 {
-   int groundSensor;
+   int groundSensor, Sensors, SensorsLeft, SensorsRight;
    int vel_max, vel_max_2, vel_curva_1, vel_curva_2, vel_curva_3, vel_rotation;
    int data[3];
    int i = 0;
+   int endStreetFlag = 0, endStreetCount = 0;
 
-   vel_max = 60;
-   vel_max_2 = 45;
+   vel_max = 55;
+   vel_max_2 = 35;
    vel_curva_1 = 30;
    vel_curva_2 = 20;
    vel_curva_3 = 10;
@@ -79,11 +92,11 @@ int main(void)
             data[i] = readLineSensors(0);
          }
          
-         groundSensor = bin_mean(data, 3);
-         printInt(groundSensor, 2 | 5 << 16);
+         Sensors = bin_mean(data, 3);
+         printInt(Sensors, 2 | 5 << 16);
          printf("\n");
 
-         //groundSensor = readLineSensors(0);
+         groundSensor = readLineSensors(0);
          switch(groundSensor)
          {
             // Robot was to go straight ahead
@@ -121,8 +134,9 @@ int main(void)
              * @brief Condition to see if exists street on the left 
              * 
              */
-            case 0x16:  //11100:
+            case 0x1C:  //11100:
                setVel2(-vel_curva_3, vel_max);
+               delay(160);
                printStr("Possible left street\n");
                break;
 
@@ -133,6 +147,7 @@ int main(void)
             
             case 0x10:  // 10000:
                setVel2(-vel_curva_3, vel_max);
+               waitTick40ms();
                break;
             
 
@@ -142,6 +157,7 @@ int main(void)
              */
             case 0x07:  // 00111:
                setVel2(vel_max, -vel_curva_3);
+               delay(160);
                break;
 
             // case 0x0F:  //01111:
@@ -151,6 +167,7 @@ int main(void)
 
             case 0x01:  // 00001:
                setVel2(vel_max, -vel_curva_3);
+               waitTick40ms();
                break;
 
 
@@ -159,12 +176,58 @@ int main(void)
              * 
              */
             case 0x00:  // 00000
-               setVel2(vel_rotation, -vel_rotation);
+               // SensorsLeft = (Sensors & 0x1C) >> 2 ;
+               // SensorsRight = (Sensors & 0x07);
+
+               // // If avg xxx00
+               // if (SensorsLeft == 0x07)
+               // {
+               //    setVel2(-30,30);
+               //    waitTick40ms();
+               // }
+               // else if (SensorsRight == 0x18) 
+               // {
+               //    setVel2(50, -50); 
+               // }
+               // else
+               // {
+               //    setVel2(50, -50);
+               // }
+               // waitTick80ms();
+               // break;
+               
+               //endStreetCount++;
+
+               // if(endStreetCount == 1){
+               //    setVel2(70, -70);
+               //    waitTick80ms();
+               //    endStreetCount = 0;
+               // }
+               // else{
+               //    setVel2(-20, -20);
+                  
+               // }
+               setVel2(50, -50);
+               waitTick80ms();
                break;
 
             case 0x1F:  // 11111
-               setVel2(vel_curva_2, -vel_curva_2);
-               break;   
+               setVel2(-vel_curva_2, vel_curva_2);
+               // delay(5000);
+               // if (groundSensor == 0x1F)
+               //    setVel2(0,0);    
+               // break; 
+               // groundSensor = readLineSensors(0);
+               // delay(10000);
+               // setVel2(vel_curva_3, -vel_curva_3);
+               // if (groundSensor == 0x1F)
+               //    setVel2(0,0);    
+               // break; 
+               
+               // groundSensor = readLineSensors(0);
+               // if (groundSensor == 0x1F)
+               //    setVel2(0,0);    
+               // break;   
 
             default:
                break;
