@@ -2,4 +2,4 @@
 
 Hugo Barros -
 Matilde Costa -
-Gonçalo Rodrigues - 98322
+Gonçalo Rodrigues (98322)
