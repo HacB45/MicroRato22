@@ -1,7 +1,6 @@
 
 #include "mr32.h"
 
-
 int main(void){
     
     initPIC32();
@@ -9,13 +8,15 @@ int main(void){
     setVel2(0, 0);
     printf("404: Failure Not Found\n\tReady!\n\n");
     
-    int samplesBuffer[10];
     int sensorRead;
     int maxVel = 60, normalVel = 50, rotateVel = 40, rotateVelMin = 20;
     int i;
     int CurveFlag = 0;
-    int sample; 
+    int sample, front, stop; 
     int sampleRight, sampleLeft;
+    int velLevel;
+    int adeus = 15;
+    int rightFlag =0;
 
     while(1)
     {
@@ -27,14 +28,12 @@ int main(void){
 
         do{
 
-            for (i = 0; i < 10; i++)
-            {
-                sensorRead = readLineSensors(0);
-                samplesBuffer[i]= sensorRead;
-            }
- 
+            sensorRead = readLineSensors(0);
+
             printInt(sensorRead, 2 | 5 << 16);
             printf("\n");
+
+
 
 
             switch(sensorRead)
@@ -45,25 +44,32 @@ int main(void){
                  */
                 case 0x04:  // 00100:
                     setVel2(maxVel, maxVel);
+                    velLevel=0;
                     break;
                 case 0x0C:  // 01100:
                     setVel2(normalVel, maxVel);
+                    velLevel=1;
                     break;
                 case 0x08:  // 01000:
-                    setVel2(rotateVel, maxVel);
+                    setVel2(30, maxVel);
+                    velLevel=2;
                     break;         
-                case 0x18:  // 11000:
-                    setVel2(rotateVel, maxVel);
+                // case 0x18:  // 11000:
+                //     setVel2(rotateVel, maxVel);
+                //     velLevel=2;
                     break;            
                 case 0x06:  // 00110:
                     setVel2(maxVel, normalVel);
+                    velLevel=3;
                     break;
                 case 0x02:  // 00010:
-                    setVel2(maxVel, rotateVel);
+                    setVel2(maxVel, 30);
+                    velLevel=4;
                     break;
-                case 0x03:  // 00011:
-                    setVel2(maxVel, rotateVel);
-                    break;
+                // case 0x03:  // 00011:
+                //     setVel2(maxVel, rotateVel);
+                //     velLevel=4;
+                //     break;
 
                 /****************************************************************/
 
@@ -128,7 +134,8 @@ int main(void){
                     do
                     {
                         setVel2(normalVel,-normalVel);
-                        sample = readLineSensors(0);
+                        velLevel=5;
+                        sample = readLineSensors(0); 
                         sample = sample & 0x02;
                     } while (sample!=0x02);
                     break;
@@ -141,6 +148,65 @@ int main(void){
                 //  * 
                 //  */
 
+                
+                case 0x18:
+                    delay(500);
+                    sensorRead = readLineSensors(0);
+                    front = (sensorRead & 0x04) >> 2;
+                    if (front == 0)
+                    {
+                        delay(600);
+                        setVel2(-35,45);
+                        delay(4000); 
+                    }
+                    break;
+
+
+                case 0x10:
+                    delay(500);
+                    sensorRead = readLineSensors(0);
+                    front = (sensorRead & 0x04) >> 2;
+                    if (front == 0)
+                    {
+                        delay(600);
+                        setVel2(-35,45);
+                        delay(4000); 
+                    }
+                    break;
+
+                case 0x1C:
+                    delay(500);
+                    sensorRead = readLineSensors(0);
+                    front = (sensorRead & 0x04) >> 2;
+                    if (front == 0)
+                    {
+                        delay(600);
+                        setVel2(-35,45);
+                        delay(4000); 
+                    }
+                    break;
+
+
+                // case 0x1:
+                //     sampleRight = sensorRead & 0x01;
+                //     sampleLeft = sensorRead >> 4;
+
+                //     if (sampleRight == 0x1)
+                //     {
+                //         //delay = 600
+                //         delay(600);
+                //         setVel2(50,-40);
+                //         delay(1100);
+                //         rightFlag = 1;
+
+                //     }
+                //     else if (sampleRight == 0x1 && sampleLeft == 0x1) // T
+                //     {
+                //         delay(600);
+                //         setVel2(50,-40);
+                //         delay(1100);
+                //     }
+                //     break;
                 // case 0x1C: // 11100    
                 //     do
                 //     {
@@ -214,20 +280,36 @@ int main(void){
                 
                 default:
                     sampleRight = sensorRead & 0x01;
-                    sampleLeft = sensorRead >> 4;
+                    stop = sensorRead & 0x10;
 
-                    if (sampleRight == 0x1 || sampleLeft != 0x1)
+                    if (sampleRight == 0x1 && stop!=0x10)
                     {
+                        //delay = 600
                         delay(600);
                         setVel2(45,-35);
-                        delay(900);
+                        delay(995);
+                        rightFlag = 1;
+
                     }
-                    if (sampleLeft == 0x1 || sampleRight != 0x1)
+                    else if (sensorRead == 0x1F)
                     {
-                        delay(600);
-                        setVel2(-35,45);
-                        delay(900);
-                    }
+                        delay(500);
+                        stop = readLineSensors(0);
+                        if (sensorRead == stop)
+                        {
+                            setVel2(0,0);
+                            setServoPos(adeus);
+                            if (adeus==15)
+                            {
+                                adeus = -15;
+                            }
+                            else
+                            {
+                                adeus = 15;
+                            }
+                        }
+
+                    }        
                     break;
             }
 
