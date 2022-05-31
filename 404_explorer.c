@@ -12,7 +12,6 @@
  */
 void turnDir(char direction, int rotateVel)
 {
-    
     switch(direction)
     {
         case 'S':
@@ -21,17 +20,17 @@ void turnDir(char direction, int rotateVel)
         case 'L':
         /* Turning the robot to the left. */
             setVel2(-rotateVel, rotateVel);
-            delay(200);
+            delay(2500);
             break;
         case 'R':
         /* Turning the robot to the right. */
             setVel2(rotateVel, -rotateVel);
-            delay(200);
+            delay(2500);
             break;
         case 'O':
         /* Turning the robot around. */
-            setVel2(-rotateVel, rotateVel);
-            delay(200);
+            setVel2(rotateVel, -rotateVel);
+            delay(5000);
             break;     
     }  
 }
@@ -47,10 +46,14 @@ int *sensorBinary(int sensorVal)
 {
     int i, j, bits_all;
     int bit[5];
+    int bits = 0;
 
     for(i = 0; i < 5; i++){
-      bit[i] = (sensorVal & 0x01) >> i;
+      bit[i] = (sensorVal >> i) & 0x01;
     }
+    bits = (bit[4] << 4) | (bit[3] << 3) | (bit[2] << 2) | (bit[1] << 1) | (bit[0] << 0);
+    printInt(bits, 2 | 5 << 16);
+    putChar('\n');
     return bit;
 }
 
@@ -90,34 +93,37 @@ int main(void){
             takes 50ms to read the sensors. So, the total time is 130ms. */
 
             sensorBin = sensorBinary(sensorRead);
-            
+            //printInt(sensorRead, 2 | 5 << 16);
             /* Checking if the robot is at a dead end, a right turn, or a left turn. */
-            if((sensorBin[0] && sensorBin[4]) == 1){
+            if((sensorRead) == 0x00){
                 /* Dead end reached 
                         X000X
                 */
                 deadEnd = 1;
+                printStr("DeadEnd\n");
             }
-            else if(sensorBin[0] == 1){
+            else if(sensorRead = 0x01){
                 /* Right Turn reached 
                         XXXX1          
                 */
                 right = 1;
+                printStr("Right\n");
             }
-            else if(sensorBin[4] == 1){
+            else if(sensorRead = 0x10){
                 /* Left Turn reached 
                         1XXXX          
                 */
                 left = 1;
+                printStr("Left\n");
             }
             
-            setVel2(normalMinVel, normalMinVel);
-            delay(300);
 
             if(sensorRead == 0x11){
                 /* Intersection reached 
                         1XXX1          
                 */
+                right = 1; 
+                printStr("Intersect\n");               
                 // TODO
             }
             else if(sensorBin[3] == 1 || sensorBin[2] == 1 || sensorBin[1] == 1){
@@ -125,18 +131,20 @@ int main(void){
                         X111X          
                 */
                 straight = 1;
+                printStr("Straight\n");
             }
 
            
             /* Checking if the robot is at a dead end, a right turn, or a left turn. */
-            if(right)
+            if(right == 1)
                 direction = 'R';
-            else if(straight)
+            else if(straight == 1)
                 direction = 'S';
-            else if(left)
+            else if(left == 1)
                 direction = 'L';
-            else if(deadEnd)
+            else if(deadEnd == 1)
                 direction = 'O';
+            
             
             turnDir(direction,rotateVel);
 
@@ -205,7 +213,7 @@ int main(void){
                     setVel2(normalVel, -rotateMinVel);
                     break;
             } */
-         
+
         }   while(!stopButton());
         setVel2(0, 0);
     }
